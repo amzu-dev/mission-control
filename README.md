@@ -13,12 +13,24 @@ A beautiful, Bloomberg Terminal-inspired dashboard for managing and monitoring y
 - **Edit agent files** (IDENTITY.md, SOUL.md, USER.md, etc.)
 - **Search and filter** agents by name or status
 - **Telegram & Discord integration** during creation (add bot tokens)
+- **Delete agents** safely with confirmation
+
+### 🤖 **Subagent Management**
+- **Spawn subagents** for task delegation
+- **Monitor progress** with real-time updates
+- **View message history** and tool calls
+- **Verify work** before approval
+- **Terminate tasks** with confirmation
+- **Session modes** (persistent or one-shot)
+- **Auto-cleanup** options
 
 ![Agent Management](./screenshots/Mission_Control_02.png)
 
 ### 📊 **Real-time Monitoring**
 - **Dashboard overview** with agent statistics
-- **Subagent tracking** with activity logs
+- **Subagent management** with full CRUD operations
+- **Task delegation** to subagents
+- **Work verification** and progress monitoring
 - **Token usage** and context limits
 - **Active/Idle status** indicators
 - **Auto-refresh** every 10 seconds
@@ -213,6 +225,52 @@ Configure your OpenClaw workspace:
 Access platform integrations from Settings:
 - **Discord** - Bot integration setup
 - **Telegram** - Bot integration setup
+
+---
+
+### Subagent Management (`/subagents`)
+
+Delegate tasks to subagents and monitor their work:
+
+#### Features:
+- **Spawn Subagents** - Create isolated AI sessions for specific tasks
+- **Monitor Progress** - Real-time status and activity tracking
+- **View Messages** - Inspect conversation history
+- **Verify Work** - Review results before approval
+- **Terminate Tasks** - Kill subagents with confirmation
+
+#### How to Use:
+1. **Create Subagent:**
+   - Click "SPAWN SUBAGENT" button
+   - Describe the task
+   - Choose model (Sonnet/Opus)
+   - Select mode: session (persistent) or run (one-shot)
+   - Set cleanup policy (keep or auto-delete)
+   - Click "SPAWN SUBAGENT"
+
+2. **Monitor Work:**
+   - View status indicator (green = active, red = error)
+   - Check token usage and context limits
+   - See created/last active timestamps
+   - Click to expand for detailed view
+
+3. **Inspect Progress:**
+   - Expand subagent card
+   - View assigned task
+   - Read recent messages (last 5)
+   - See tool calls and actions
+
+4. **Terminate:**
+   - Click "KILL" button
+   - Confirm termination
+   - Session ends immediately
+
+#### Use Cases:
+- **Research Tasks** - Delegate information gathering
+- **Code Review** - Have subagent review PRs
+- **Writing** - Generate content independently
+- **Analysis** - Process data in parallel
+- **Testing** - Verify functionality
 
 ---
 
