@@ -193,6 +193,40 @@ export default function Settings() {
               </div>
             </div>
           </div>
+
+          {/* Integrations */}
+          <div className="bg-[#0a0a0a] border border-[#333] rounded p-6 space-y-4">
+            <div>
+              <h2 className="text-xl font-bold text-orange-400 mb-2">Integrations</h2>
+              <p className="text-sm text-gray-400">
+                Connect OpenClaw to communication platforms
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button
+                onClick={() => router.push('/discord')}
+                className="flex items-center gap-3 p-4 bg-[#1a1a1a] hover:bg-[#222] border border-[#333] rounded transition-colors text-left"
+              >
+                <span className="text-3xl">💬</span>
+                <div>
+                  <div className="text-sm font-bold text-gray-200">Discord</div>
+                  <div className="text-xs text-gray-500">Bot integration & server chat</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => router.push('/telegram')}
+                className="flex items-center gap-3 p-4 bg-[#1a1a1a] hover:bg-[#222] border border-[#333] rounded transition-colors text-left"
+              >
+                <span className="text-3xl">✈️</span>
+                <div>
+                  <div className="text-sm font-bold text-gray-200">Telegram</div>
+                  <div className="text-xs text-gray-500">Bot integration & group chat</div>
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
