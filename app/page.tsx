@@ -187,6 +187,13 @@ export default function Dashboard() {
         
         <div className="flex items-center gap-4">
           <button
+            onClick={() => router.push('/subagents')}
+            className="px-4 py-2 bg-[#1a1a1a] hover:bg-[#222] border border-[#333] text-gray-400 font-bold text-xs rounded transition-colors"
+            title="Subagents"
+          >
+            🤖 SUBAGENTS
+          </button>
+          <button
             onClick={() => router.push('/settings')}
             className="px-4 py-2 bg-[#1a1a1a] hover:bg-[#222] border border-[#333] text-gray-400 font-bold text-xs rounded transition-colors"
             title="Settings"
