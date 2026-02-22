@@ -12,6 +12,7 @@ A beautiful, Bloomberg Terminal-inspired dashboard for managing and monitoring y
 - **Edit agent configurations** (name, emoji, model selection)
 - **Edit agent files** (IDENTITY.md, SOUL.md, USER.md, etc.)
 - **Search and filter** agents by name or status
+- **Telegram & Discord integration** during creation (add bot tokens)
 
 ![Agent Management](./screenshots/Mission_Control_02.png)
 
@@ -156,10 +157,17 @@ Grid view of all your agents with:
 2. **Optional fields:**
    - Vibe/Personality description
    - Model selection
-   - Telegram Bot Token (for Telegram integration)
+   - **Telegram Bot Token** (for Telegram integration)
+   - **Discord Bot Token** (for Discord integration)
 
 3. Click **"CREATE AGENT"**
 4. Success! You'll be redirected to manage page
+
+**Integration Setup:**
+- **Telegram:** Add bot token from @BotFather
+- **Discord:** Add bot token from [Discord Developer Portal](https://discord.com/developers/applications)
+  - Requires Message Content Intent enabled
+  - Bot will auto-configure with pairing policy
 
 ---
 
