@@ -21,6 +21,8 @@ export default function CreateAgent() {
     vibe: '',
     telegramBotToken: '',
     telegramAccountId: '',
+    discordBotToken: '',
+    discordAccountId: '',
     model: 'anthropic/claude-sonnet-4-5'
   });
   const [creating, setCreating] = useState(false);
@@ -192,6 +194,51 @@ export default function CreateAgent() {
                     className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm text-gray-200"
                     placeholder="Defaults to agent ID"
                   />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-[#333] pt-6">
+              <h3 className="text-sm font-bold text-gray-400 mb-4">Discord Configuration (Optional)</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-400 mb-2">
+                    Discord Bot Token
+                  </label>
+                  <input
+                    type="password"
+                    value={newAgent.discordBotToken}
+                    onChange={(e) => setNewAgent({ ...newAgent, discordBotToken: e.target.value })}
+                    className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm text-gray-200 font-mono"
+                    placeholder="MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.AbCdEf.Gh..."
+                  />
+                  <div className="text-[10px] text-gray-600 mt-1">
+                    Get from Discord Developer Portal → Bot → Reset Token
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-bold text-gray-400 mb-2">
+                    Discord Account ID (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newAgent.discordAccountId}
+                    onChange={(e) => setNewAgent({ ...newAgent, discordAccountId: e.target.value })}
+                    className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm text-gray-200"
+                    placeholder="Defaults to agent ID"
+                  />
+                  <div className="text-[10px] text-gray-600 mt-1">
+                    Custom account identifier
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-3 bg-blue-900/20 border border-blue-700 rounded p-3">
+                <div className="text-xs text-blue-300">
+                  💡 <strong>Tip:</strong> Create your Discord bot at <a href="https://discord.com/developers/applications" target="_blank" className="text-orange-400 hover:underline">Discord Developer Portal</a>. 
+                  Enable <strong>Message Content Intent</strong> and add the bot to your server with appropriate permissions.
                 </div>
               </div>
             </div>

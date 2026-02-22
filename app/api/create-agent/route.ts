@@ -15,6 +15,8 @@ export async function POST(request: Request) {
       vibe, 
       telegramBotToken, 
       telegramAccountId,
+      discordBotToken,
+      discordAccountId,
       model 
     } = await request.json();
     
@@ -171,6 +173,33 @@ Add whatever helps you do your job. This is your cheat sheet.
         await execAsync(telegramCmd);
       } catch (telegramError) {
         console.error('Telegram config error:', telegramError);
+      }
+    }
+    
+    // If discord bot token provided, add to discord config
+    if (discordBotToken) {
+      const accountId = discordAccountId || agentId;
+      
+      // Set the bot token
+      const discordTokenCmd = `openclaw config set channels.discord.accounts.${accountId}.token '"${discordBotToken}"' --json`;
+      
+      // Configure the Discord account
+      const discordConfigCmd = `openclaw config set channels.discord.accounts.${accountId} '${JSON.stringify({
+        name: name,
+        dmPolicy: 'pairing',
+        groupPolicy: 'allowlist',
+        streaming: 'partial'
+      })}' --json`;
+      
+      // Enable Discord if not already enabled
+      const discordEnableCmd = `openclaw config set channels.discord.enabled true --json`;
+      
+      try {
+        await execAsync(discordTokenCmd);
+        await execAsync(discordConfigCmd);
+        await execAsync(discordEnableCmd);
+      } catch (discordError) {
+        console.error('Discord config error:', discordError);
       }
     }
     
