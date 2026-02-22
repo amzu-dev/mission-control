@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Dialog from '../components/Dialog';
 
 interface AllAgent {
   id: string;
@@ -25,6 +26,14 @@ export default function ManageAgents() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'idle'>('all');
+  const [showDialog, setShowDialog] = useState(false);
+  const [dialogConfig, setDialogConfig] = useState({
+    title: '',
+    message: '',
+    type: 'success' as 'success' | 'error' | 'warning' | 'info',
+    onConfirm: undefined as (() => void) | undefined
+  });
+  const [deletingAgent, setDeletingAgent] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAllAgents();
@@ -40,6 +49,74 @@ export default function ManageAgents() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleDeleteAgent(agent: AllAgent, e: React.MouseEvent) {
+    e.stopPropagation(); // Prevent navigating to edit page
+    
+    // Safety check for main agent
+    if (agent.id === 'main') {
+      setDialogConfig({
+        title: 'Cannot Delete Main Agent',
+        message: 'The main agent cannot be deleted as it is required for the system to function.',
+        type: 'error',
+        onConfirm: undefined
+      });
+      setShowDialog(true);
+      return;
+    }
+    
+    // Show confirmation dialog
+    setDialogConfig({
+      title: 'Delete Agent',
+      message: `Are you sure you want to delete "${agent.name}" (${agent.id})? This action cannot be undone and will remove all agent files and configuration.`,
+      type: 'warning',
+      onConfirm: async () => {
+        setShowDialog(false);
+        setDeletingAgent(agent.id);
+        
+        try {
+          const res = await fetch('/api/delete-agent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ agentId: agent.id })
+          });
+          
+          const data = await res.json();
+          
+          if (res.ok) {
+            setDialogConfig({
+              title: 'Success',
+              message: `Agent "${agent.name}" has been deleted successfully.`,
+              type: 'success',
+              onConfirm: undefined
+            });
+            setShowDialog(true);
+            // Reload agents list
+            await fetchAllAgents();
+          } else {
+            setDialogConfig({
+              title: 'Error',
+              message: `Failed to delete agent: ${data.error}`,
+              type: 'error',
+              onConfirm: undefined
+            });
+            setShowDialog(true);
+          }
+        } catch (error) {
+          setDialogConfig({
+            title: 'Error',
+            message: 'Failed to delete agent. Please try again.',
+            type: 'error',
+            onConfirm: undefined
+          });
+          setShowDialog(true);
+        } finally {
+          setDeletingAgent(null);
+        }
+      }
+    });
+    setShowDialog(true);
   }
 
   const filteredAgents = allAgents.filter(agent => {
@@ -143,7 +220,7 @@ export default function ManageAgents() {
               filteredAgents.map((agent) => (
                 <div
                   key={agent.id}
-                  className="bg-[#0a0a0a] border border-[#333] rounded p-4 hover:border-orange-500 transition-colors cursor-pointer"
+                  className="bg-[#0a0a0a] border border-[#333] rounded p-4 hover:border-orange-500 transition-colors cursor-pointer relative group"
                   onClick={() => router.push(`/manage/edit/${agent.id}`)}
                 >
                   <div className="flex items-center gap-3 mb-3">
@@ -181,12 +258,36 @@ export default function ManageAgents() {
                       </span>
                     </div>
                   </div>
+                  
+                  {/* Delete button (only show for non-main agents) */}
+                  {agent.id !== 'main' && (
+                    <button
+                      onClick={(e) => handleDeleteAgent(agent, e)}
+                      disabled={deletingAgent === agent.id}
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold rounded disabled:opacity-50"
+                      title="Delete agent"
+                    >
+                      {deletingAgent === agent.id ? 'DELETING...' : '🗑️'}
+                    </button>
+                  )}
                 </div>
               ))
             )}
           </div>
         </div>
       </div>
+
+      {/* Dialog */}
+      <Dialog
+        isOpen={showDialog}
+        title={dialogConfig.title}
+        message={dialogConfig.message}
+        type={dialogConfig.type}
+        onClose={() => setShowDialog(false)}
+        onConfirm={dialogConfig.onConfirm}
+        confirmText={dialogConfig.onConfirm ? 'Delete' : 'OK'}
+        cancelText="Cancel"
+      />
     </div>
   );
 }

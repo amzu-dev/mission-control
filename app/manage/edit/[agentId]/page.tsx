@@ -41,8 +41,10 @@ export default function EditAgent() {
   const [dialogConfig, setDialogConfig] = useState({
     title: '',
     message: '',
-    type: 'success' as 'success' | 'error' | 'warning' | 'info'
+    type: 'success' as 'success' | 'error' | 'warning' | 'info',
+    onConfirm: undefined as (() => void) | undefined
   });
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (agentId) {
@@ -84,13 +86,80 @@ export default function EditAgent() {
     }
   }
 
+  async function handleDeleteAgent() {
+    // Safety check for main agent
+    if (agentId === 'main') {
+      setDialogConfig({
+        title: 'Cannot Delete Main Agent',
+        message: 'The main agent cannot be deleted as it is required for the system to function.',
+        type: 'error',
+        onConfirm: undefined
+      });
+      setShowDialog(true);
+      return;
+    }
+    
+    // Show confirmation dialog
+    setDialogConfig({
+      title: 'Delete Agent',
+      message: `Are you sure you want to delete agent "${agentId}"? This action cannot be undone and will remove all agent files and configuration.`,
+      type: 'warning',
+      onConfirm: async () => {
+        setShowDialog(false);
+        setDeleting(true);
+        
+        try {
+          const res = await fetch('/api/delete-agent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ agentId })
+          });
+          
+          const data = await res.json();
+          
+          if (res.ok) {
+            setDialogConfig({
+              title: 'Success',
+              message: `Agent "${agentId}" has been deleted successfully. Redirecting...`,
+              type: 'success',
+              onConfirm: () => {
+                router.push('/manage');
+              }
+            });
+            setShowDialog(true);
+          } else {
+            setDialogConfig({
+              title: 'Error',
+              message: `Failed to delete agent: ${data.error}`,
+              type: 'error',
+              onConfirm: undefined
+            });
+            setShowDialog(true);
+          }
+        } catch (error) {
+          setDialogConfig({
+            title: 'Error',
+            message: 'Failed to delete agent. Please try again.',
+            type: 'error',
+            onConfirm: undefined
+          });
+          setShowDialog(true);
+        } finally {
+          setDeleting(false);
+        }
+      }
+    });
+    setShowDialog(true);
+  }
+
   async function handleUpdateAgent() {
     // Validate emoji
     if (!agentEmoji) {
       setDialogConfig({
         title: 'Validation Error',
         message: 'Please select an emoji!',
-        type: 'error'
+        type: 'error',
+        onConfirm: undefined
       });
       setShowDialog(true);
       return;
@@ -113,7 +182,8 @@ export default function EditAgent() {
         setDialogConfig({
           title: 'Success',
           message: 'Agent updated successfully!',
-          type: 'success'
+          type: 'success',
+          onConfirm: undefined
         });
         setShowDialog(true);
         setEditingInfo(false);
@@ -123,7 +193,8 @@ export default function EditAgent() {
         setDialogConfig({
           title: 'Error',
           message: `Failed to update agent: ${data.error}`,
-          type: 'error'
+          type: 'error',
+          onConfirm: undefined
         });
         setShowDialog(true);
       }
@@ -131,7 +202,8 @@ export default function EditAgent() {
       setDialogConfig({
         title: 'Error',
         message: 'Failed to update agent. Please try again.',
-        type: 'error'
+        type: 'error',
+        onConfirm: undefined
       });
       setShowDialog(true);
     } finally {
@@ -162,7 +234,8 @@ export default function EditAgent() {
         setDialogConfig({
           title: 'Success',
           message: 'File saved successfully!',
-          type: 'success'
+          type: 'success',
+          onConfirm: undefined
         });
         setShowDialog(true);
         await loadAgentFiles(agentId);
@@ -171,7 +244,8 @@ export default function EditAgent() {
         setDialogConfig({
           title: 'Error',
           message: `Failed to save file: ${data.error}`,
-          type: 'error'
+          type: 'error',
+          onConfirm: undefined
         });
         setShowDialog(true);
       }
@@ -179,7 +253,8 @@ export default function EditAgent() {
       setDialogConfig({
         title: 'Error',
         message: 'Failed to save file. Please try again.',
-        type: 'error'
+        type: 'error',
+        onConfirm: undefined
       });
       setShowDialog(true);
     } finally {
@@ -225,12 +300,24 @@ export default function EditAgent() {
                     <div className="text-sm text-gray-600">{agentInfo.id}</div>
                   </div>
                 </div>
-                <button
-                  onClick={() => setEditingInfo(!editingInfo)}
-                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black font-bold text-xs rounded transition-colors"
-                >
-                  {editingInfo ? 'CANCEL' : '✏️ EDIT INFO'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setEditingInfo(!editingInfo)}
+                    className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black font-bold text-xs rounded transition-colors"
+                  >
+                    {editingInfo ? 'CANCEL' : '✏️ EDIT INFO'}
+                  </button>
+                  {agentId !== 'main' && (
+                    <button
+                      onClick={handleDeleteAgent}
+                      disabled={deleting}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded transition-colors disabled:opacity-50"
+                      title="Delete agent"
+                    >
+                      {deleting ? 'DELETING...' : '🗑️ DELETE'}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {editingInfo ? (
@@ -372,6 +459,9 @@ export default function EditAgent() {
         message={dialogConfig.message}
         type={dialogConfig.type}
         onClose={() => setShowDialog(false)}
+        onConfirm={dialogConfig.onConfirm}
+        confirmText={dialogConfig.onConfirm ? 'Confirm' : 'OK'}
+        cancelText="Cancel"
       />
     </div>
   );
