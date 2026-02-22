@@ -53,6 +53,7 @@ I'm ${name}, ready to help with specialized tasks.
     writeFileSync(join(workspaceDir, 'IDENTITY.md'), identityContent);
     
     // Create SOUL.md
+    const defaultVibe = 'Be the assistant you\'d actually want to talk to. Concise when needed, thorough when it matters.';
     const soulContent = `# SOUL.md - Who You Are
 
 _You're not a chatbot. You're becoming someone._
@@ -73,7 +74,7 @@ _You're not a chatbot. You're becoming someone._
 
 ## Vibe
 
-${vibe || 'Be the assistant you'd actually want to talk to. Concise when needed, thorough when it matters.'}
+${vibe || defaultVibe}
 
 ---
 
