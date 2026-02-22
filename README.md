@@ -139,6 +139,9 @@ Grid view of all your agents with:
 - Use the search bar to find agents by name/ID
 - Filter by status: All, Active, or Idle
 - Click any agent card to edit
+- Hover over agent cards to reveal **delete button** (🗑️) in top-right corner
+  - Quick delete without entering edit page
+  - Same safety checks and confirmation dialog
 
 ---
 
@@ -172,6 +175,14 @@ Click **"✏️ EDIT INFO"** to modify:
 - Click a file to edit
 - Edit in raw text editor
 - Click **"SAVE FILE"** to persist changes
+
+#### Delete Agent:
+Click **"🗑️ DELETE"** button (top right, next to EDIT INFO) to safely delete an agent:
+- **Safety check**: Main agent cannot be deleted
+- **Confirmation dialog** before deletion
+- **Permanent action**: Removes all agent files and configuration
+- Uses OpenClaw's `openclaw agents delete` command
+- Redirects to manage page after deletion
 
 ---
 
