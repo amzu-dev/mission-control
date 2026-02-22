@@ -27,6 +27,7 @@ A beautiful, Bloomberg Terminal-inspired dashboard for managing and monitoring y
 ### 🛠️ **Configuration**
 - **Workspace path selection** with verification
 - **Model selection** (Claude Sonnet, Opus, GPT-4, etc.)
+- **Discord bot integration** setup with full config
 - **Telegram bot integration** setup
 - **Emoji picker** with 70+ options across 7 categories
 
@@ -198,6 +199,45 @@ Configure your OpenClaw workspace:
    - Agents directory found
 4. Click **"SAVE & APPLY"**
 5. Page reloads with new workspace
+
+### Integrations
+
+Access platform integrations from Settings:
+- **Discord** - Bot integration setup
+- **Telegram** - Bot integration setup
+
+---
+
+### Discord Integration (`/discord`)
+
+Complete Discord bot setup in one place:
+
+#### Setup Steps:
+1. **Create Discord Application**
+   - Go to [Discord Developer Portal](https://discord.com/developers/applications)
+   - Create New Application → Add Bot
+   - Enable **Message Content Intent** and **Server Members Intent**
+   - Copy Bot Token
+
+2. **Configure in Mission Control**
+   - Enter Bot Token
+   - Add Server ID (Guild ID) - Right-click server → Copy ID
+   - Add Your User ID - Right-click avatar → Copy ID
+   - Enable Discord Integration
+
+3. **Access Policies**
+   - **DM Policy**: pairing | allowlist | open | disabled
+   - **Group Policy**: allowlist | open | disabled
+   - **Require @mention**: Toggle for server channels
+
+4. **Features**
+   - **Streaming Mode**: off | partial | block | progress
+   - **History Limit**: 0-100 messages in context
+
+5. **Save & Activate**
+   - Click "SAVE DISCORD CONFIGURATION"
+   - Gateway restarts automatically
+   - Approve pairing in Discord DMs!
 
 ---
 
