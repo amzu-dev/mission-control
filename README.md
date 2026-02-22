@@ -67,7 +67,7 @@ Before you begin, ensure you have:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/mission-control.git
+   git clone https://github.com/amzu-dev/mission-control.git
    cd mission-control
    ```
 
