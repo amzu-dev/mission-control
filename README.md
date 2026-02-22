@@ -339,14 +339,3 @@ Built for the **OpenClaw** community by developers who love beautiful, functiona
 
 Inspired by Bloomberg Terminal's iconic interface.
 
----
-
-## 📧 Support
-
-- **GitHub Issues**: For bugs and feature requests
-- **OpenClaw Discord**: Join the community at [discord.com/invite/clawd](https://discord.com/invite/clawd)
-- **Documentation**: Full OpenClaw docs at [docs.openclaw.ai](https://docs.openclaw.ai)
-
----
-
-Made with ❤️ for AI agent orchestration
