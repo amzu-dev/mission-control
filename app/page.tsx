@@ -44,6 +44,13 @@ interface AgentNode {
     lastActive: string | null;
     status: string;
     channel: string | null;
+    type: 'active';
+  }>;
+  teamMembers: Array<{
+    id: string;
+    name: string;
+    emoji: string;
+    type: 'team';
   }>;
 }
 

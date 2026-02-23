@@ -13,6 +13,14 @@ interface Subagent {
   lastActive: string | null;
   status: string;
   channel: string | null;
+  type: 'active';
+}
+
+interface TeamMember {
+  id: string;
+  name: string;
+  emoji: string;
+  type: 'team';
 }
 
 interface AgentNode {
@@ -29,6 +37,7 @@ interface AgentNode {
   channel: string | null;
   bindings: number;
   subagents: Subagent[];
+  teamMembers: TeamMember[];
 }
 
 interface AgentHierarchyProps {
@@ -55,7 +64,9 @@ export default function AgentHierarchy({ agents }: AgentHierarchyProps) {
     <div className="space-y-2">
       {agents.map((agent) => {
         const isExpanded = expandedAgents.has(agent.id);
-        const hasSubagents = agent.subagents.length > 0;
+        const hasTeam = agent.teamMembers.length > 0;
+        const hasActiveSubagents = agent.subagents.length > 0;
+        const hasChildren = hasTeam || hasActiveSubagents;
         
         return (
           <div key={agent.id} className="border border-[#333] rounded bg-[#0a0a0a] overflow-hidden">
@@ -63,7 +74,7 @@ export default function AgentHierarchy({ agents }: AgentHierarchyProps) {
             <div className="flex items-center justify-between p-4 hover:bg-[#111] transition-colors">
               <div className="flex items-center gap-3 flex-1">
                 {/* Expand/Collapse Button */}
-                {hasSubagents ? (
+                {hasChildren ? (
                   <button
                     onClick={() => toggleAgent(agent.id)}
                     className="text-gray-500 hover:text-orange-400 transition-colors"
@@ -90,9 +101,14 @@ export default function AgentHierarchy({ agents }: AgentHierarchyProps) {
                         {agent.bindings} BIND
                       </span>
                     )}
-                    {hasSubagents && (
+                    {hasTeam && (
+                      <span className="text-[10px] px-2 py-0.5 bg-cyan-600 text-white rounded font-bold">
+                        👥 {agent.teamMembers.length}
+                      </span>
+                    )}
+                    {hasActiveSubagents && (
                       <span className="text-[10px] px-2 py-0.5 bg-purple-600 text-white rounded font-bold">
-                        {agent.subagents.length} SUB
+                        ⚡ {agent.subagents.length}
                       </span>
                     )}
                   </div>
@@ -126,50 +142,82 @@ export default function AgentHierarchy({ agents }: AgentHierarchyProps) {
               </div>
             </div>
 
-            {/* Subagents */}
-            {isExpanded && hasSubagents && (
+            {/* Team Members & Active Subagents */}
+            {isExpanded && hasChildren && (
               <div className="border-t border-[#333] bg-[#050505]">
-                {agent.subagents.map((sub, idx) => (
-                  <div 
-                    key={sub.key}
-                    className="flex items-center gap-3 p-3 pl-12 hover:bg-[#0a0a0a] transition-colors border-b border-[#222] last:border-0"
-                  >
-                    {/* Tree Line */}
-                    <div className="flex items-center text-gray-600">
-                      <span className="text-sm">
-                        {idx === agent.subagents.length - 1 ? '└─' : '├─'}
-                      </span>
+                {/* Configured Team Members */}
+                {hasTeam && (
+                  <div className="p-3 pl-8 bg-[#0a0a0a] border-b border-[#333]">
+                    <div className="text-xs font-bold text-cyan-400 mb-2">👥 CONFIGURED TEAM</div>
+                    <div className="space-y-1">
+                      {agent.teamMembers.map((member, idx) => (
+                        <div 
+                          key={member.id}
+                          className="flex items-center gap-3 pl-4 py-1 hover:bg-[#111] transition-colors rounded"
+                        >
+                          <div className="text-gray-600 text-sm">
+                            {idx === agent.teamMembers.length - 1 && !hasActiveSubagents ? '└─' : '├─'}
+                          </div>
+                          <span className="text-lg">{member.emoji}</span>
+                          <span className="text-sm text-gray-300">{member.name}</span>
+                          <span className="text-xs text-gray-600">({member.id})</span>
+                        </div>
+                      ))}
                     </div>
-                    
-                    {/* Subagent Status */}
-                    <div className={`w-2 h-2 rounded-full ${sub.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} />
-                    
-                    {/* Subagent Info */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-cyan-400">{sub.displayName}</span>
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
-                          sub.status === 'active' ? 'bg-green-700 text-green-200' : 'bg-red-700 text-red-200'
-                        }`}>
-                          {sub.status.toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-600">{sub.key}</div>
-                    </div>
-                    
-                    {/* Subagent Stats */}
-                    <div className="text-right text-xs text-gray-500">
-                      <div>{sub.model.split('/')[1] || sub.model}</div>
-                      <div className="text-blue-400">{sub.tokens.toLocaleString()} tokens</div>
-                    </div>
-                    
-                    {sub.lastActive && (
-                      <div className="text-xs text-gray-600 w-24 text-right">
-                        {formatDistanceToNow(new Date(sub.lastActive), { addSuffix: true })}
+                  </div>
+                )}
+                
+                {/* Active Subagents */}
+                {hasActiveSubagents && (
+                  <>
+                    {hasTeam && (
+                      <div className="p-3 pl-8 bg-[#0a0a0a] border-b border-[#333]">
+                        <div className="text-xs font-bold text-purple-400 mb-2">⚡ ACTIVE TASKS</div>
                       </div>
                     )}
-                  </div>
-                ))}
+                    {agent.subagents.map((sub, idx) => (
+                      <div 
+                        key={sub.key}
+                        className="flex items-center gap-3 p-3 pl-12 hover:bg-[#0a0a0a] transition-colors border-b border-[#222] last:border-0"
+                      >
+                        {/* Tree Line */}
+                        <div className="flex items-center text-gray-600">
+                          <span className="text-sm">
+                            {idx === agent.subagents.length - 1 ? '└─' : '├─'}
+                          </span>
+                        </div>
+                        
+                        {/* Subagent Status */}
+                        <div className={`w-2 h-2 rounded-full ${sub.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} />
+                        
+                        {/* Subagent Info */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-cyan-400">{sub.displayName}</span>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                              sub.status === 'active' ? 'bg-green-700 text-green-200' : 'bg-red-700 text-red-200'
+                            }`}>
+                              {sub.status.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-600">{sub.key}</div>
+                        </div>
+                        
+                        {/* Subagent Stats */}
+                        <div className="text-right text-xs text-gray-500">
+                          <div>{sub.model.split('/')[1] || sub.model}</div>
+                          <div className="text-blue-400">{sub.tokens.toLocaleString()} tokens</div>
+                        </div>
+                        
+                        {sub.lastActive && (
+                          <div className="text-xs text-gray-600 w-24 text-right">
+                            {formatDistanceToNow(new Date(sub.lastActive), { addSuffix: true })}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </div>

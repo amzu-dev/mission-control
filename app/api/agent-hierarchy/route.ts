@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { readFile } from 'fs/promises';
+import { homedir } from 'os';
+import { join } from 'path';
 
 const execAsync = promisify(exec);
 
@@ -27,8 +30,38 @@ interface Agent {
   bindings?: number;
 }
 
+interface OpenClawConfig {
+  agents?: {
+    list?: Array<{
+      id: string;
+      subagents?: {
+        allowAgents?: string[];
+      };
+    }>;
+  };
+}
+
 export async function GET() {
   try {
+    // Read OpenClaw config to get subagent relationships
+    const configPath = join(homedir(), '.openclaw', 'openclaw.json');
+    let configuredTeams: Map<string, string[]> = new Map();
+    
+    try {
+      const configContent = await readFile(configPath, 'utf-8');
+      const config: OpenClawConfig = JSON.parse(configContent);
+      
+      if (config.agents?.list) {
+        config.agents.list.forEach(agent => {
+          if (agent.subagents?.allowAgents) {
+            configuredTeams.set(agent.id, agent.subagents.allowAgents);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Failed to read OpenClaw config:', error);
+    }
+    
     // Fetch all agents
     const { stdout: agentsStdout } = await execAsync('openclaw agents list --json');
     const agentsData: Agent[] = JSON.parse(agentsStdout);
@@ -46,7 +79,7 @@ export async function GET() {
       );
       
       // Find all subagent sessions for this agent
-      const subagents = sessions
+      const activeSubagents = sessions
         .filter((s) => 
           s.kind === 'subagent' && s.key.includes(agent.id)
         )
@@ -58,8 +91,21 @@ export async function GET() {
           contextTokens: sub.contextTokens || 0,
           lastActive: sub.updatedAt ? new Date(sub.updatedAt).toISOString() : null,
           status: sub.abortedLastRun ? 'error' : 'active',
-          channel: sub.channel || null
+          channel: sub.channel || null,
+          type: 'active' as const
         }));
+      
+      // Get configured team members (allowAgents)
+      const allowedAgents = configuredTeams.get(agent.id) || [];
+      const teamMembers = allowedAgents.map(memberId => {
+        const memberAgent = agentsData.find(a => a.id === memberId);
+        return {
+          id: memberId,
+          name: memberAgent?.identityName || memberAgent?.name || memberId,
+          emoji: memberAgent?.identityEmoji || '🤖',
+          type: 'team' as const
+        };
+      });
       
       return {
         id: agent.id,
@@ -74,7 +120,8 @@ export async function GET() {
         kind: mainSession?.kind || 'idle',
         channel: mainSession?.channel || null,
         bindings: agent.bindings || 0,
-        subagents
+        subagents: activeSubagents,
+        teamMembers
       };
     });
     
