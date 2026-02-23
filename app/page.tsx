@@ -47,22 +47,33 @@ interface AgentNode {
   }>;
 }
 
+interface VersionInfo {
+  current: string;
+  latest: string | null;
+  updateAvailable: boolean;
+}
+
 export default function Dashboard() {
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [hierarchy, setHierarchy] = useState<AgentNode[]>([]);
+  const [version, setVersion] = useState<VersionInfo | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
     fetchData();
     fetchHierarchy();
+    fetchVersion();
     const interval = setInterval(() => {
       fetchData();
       fetchHierarchy();
     }, 10000);
+    const versionInterval = setInterval(fetchVersion, 300000); // Check version every 5 minutes
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => {
       clearInterval(interval);
+      clearInterval(versionInterval);
       clearInterval(timer);
     };
   }, []);
@@ -74,6 +85,8 @@ export default function Dashboard() {
       setData(json);
     } catch (error) {
       console.error('Failed to fetch data:', error);
+    } finally {
+      if (initialLoad) setInitialLoad(false);
     }
   }
 
@@ -87,20 +100,31 @@ export default function Dashboard() {
     }
   }
 
-  // Show loading screen
+  async function fetchVersion() {
+    try {
+      const res = await fetch('/api/version');
+      const json = await res.json();
+      setVersion(json);
+    } catch (error) {
+      console.error('Failed to fetch version:', error);
+    }
+  }
+
+  // Show better loading screen
   if (!data) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center bg-black">
         <div className="text-center">
-          <div className="text-4xl mb-3">⏳</div>
-          <div className="text-base font-bold">LOADING...</div>
+          <div className="text-6xl mb-4 animate-pulse">🚀</div>
+          <div className="text-xl font-bold text-orange-400 mb-2">INITIALIZING MISSION CONTROL</div>
+          <div className="text-sm text-gray-500">Scanning OpenClaw workspace...</div>
         </div>
       </div>
     );
   }
 
-  // Show setup screen if no agents found
-  if (hierarchy.length === 0) {
+  // Show setup screen if no agents found after initial load
+  if (!initialLoad && hierarchy.length === 0) {
     return <SetupScreen />;
   }
 
@@ -137,6 +161,31 @@ export default function Dashboard() {
         </div>
         
         <div className="flex items-center gap-4">
+          {/* Version Info */}
+          {version && (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-gray-500">v{version.current}</span>
+              {version.updateAvailable && version.latest && (
+                <a
+                  href="https://github.com/openclaw/openclaw/releases/latest"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white font-bold rounded transition-colors"
+                  title={`Update available: v${version.latest}`}
+                >
+                  ⬆ v{version.latest}
+                </a>
+              )}
+            </div>
+          )}
+          
+          <button
+            onClick={() => router.push('/subagents')}
+            className="px-4 py-2 bg-[#1a1a1a] hover:bg-[#222] border border-[#333] text-gray-400 font-bold text-xs rounded transition-colors"
+            title="Agent Hierarchy"
+          >
+            🌳 HIERARCHY
+          </button>
           <button
             onClick={() => router.push('/settings')}
             className="px-4 py-2 bg-[#1a1a1a] hover:bg-[#222] border border-[#333] text-gray-400 font-bold text-xs rounded transition-colors"
