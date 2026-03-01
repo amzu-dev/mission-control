@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { getOpenClawClient } from '@/app/lib/openclaw-client';
 import { readFile } from 'fs/promises';
 import { homedir } from 'os';
 import { join } from 'path';
-
-const execAsync = promisify(exec);
 
 interface Session {
   key: string;
@@ -43,6 +40,8 @@ interface OpenClawConfig {
 
 export async function GET() {
   try {
+    const client = await getOpenClawClient();
+    
     // Read OpenClaw config to get subagent relationships
     const configPath = join(homedir(), '.openclaw', 'openclaw.json');
     let configuredTeams: Map<string, string[]> = new Map();
@@ -59,17 +58,12 @@ export async function GET() {
         });
       }
     } catch (error) {
-      console.error('Failed to read OpenClaw config:', error);
+      console.error('[API /agent-hierarchy] Failed to read OpenClaw config:', error);
     }
     
-    // Fetch all agents
-    const { stdout: agentsStdout } = await execAsync('openclaw agents list --json');
-    const agentsData: Agent[] = JSON.parse(agentsStdout);
-    
-    // Fetch all sessions
-    const { stdout: sessionsStdout } = await execAsync('openclaw sessions list --json');
-    const sessionsData = JSON.parse(sessionsStdout);
-    const sessions: Session[] = sessionsData.sessions || [];
+    // Fetch all agents and sessions via WebSocket
+    const agentsData: Agent[] = await client.listAgents();
+    const sessions: Session[] = await client.listSessions();
     
     // Build hierarchical structure
     const hierarchy = agentsData.map((agent) => {
@@ -127,7 +121,7 @@ export async function GET() {
     
     return NextResponse.json({ hierarchy });
   } catch (error: any) {
-    console.error('Error fetching agent hierarchy:', error);
+    console.error('[API /agent-hierarchy] Error:', error);
     return NextResponse.json({ 
       hierarchy: [], 
       error: error.message 

@@ -1,28 +1,25 @@
 import { NextResponse } from 'next/server';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
+import { getOpenClawClient } from '@/app/lib/openclaw-client';
 
 export async function GET() {
   try {
-    // Get sessions list via openclaw CLI
-    const { stdout } = await execAsync('openclaw sessions list --json');
-    const sessions = JSON.parse(stdout);
+    const client = await getOpenClawClient();
+    const response = await client.request('sessions.list', {});
+    const sessions = response.payload?.sessions || [];
     
-    // Transform to agent-friendly format
-    const agents = sessions.sessions?.map((session: any) => ({
+    const agents = sessions.map((session: any) => ({
       name: session.displayName || session.key,
       status: session.abortedLastRun ? 'error' : 'active',
       model: session.model || 'unknown',
       tokens: session.totalTokens || 0,
       lastActive: new Date(session.updatedAt).toISOString(),
-      kind: session.kind || 'other'
-    })) || [];
+      kind: session.kind || 'other',
+      sessionKey: session.key
+    }));
     
     return NextResponse.json({ agents });
   } catch (error) {
-    console.error('Error fetching agents:', error);
-    return NextResponse.json({ agents: [] });
+    console.error('[API /agents] Error fetching agents:', error);
+    return NextResponse.json({ agents: [] }, { status: 500 });
   }
 }

@@ -1,11 +1,23 @@
 import { NextResponse } from 'next/server';
-import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
+import { getOpenClawClient } from '@/app/lib/openclaw-client';
+import { readFileSync, readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 
 const WORKSPACE = '/Users/venkat/.openclaw/workspace';
 
 export async function GET() {
   try {
+    // Get gateway status via WebSocket
+    let gatewayStatus: any = {};
+    try {
+      const client = await getOpenClawClient();
+      const response = await client.request('status', {});
+      // The response is the full status object, not wrapped in .payload
+      gatewayStatus = response;
+    } catch (wsError) {
+      console.warn('[API /status] Could not fetch gateway status:', wsError);
+    }
+    
     // Read identity with fallback
     let name = 'Sun';
     let emoji = '🤖';
@@ -72,7 +84,10 @@ export async function GET() {
       emoji,
       status: 'online',
       uptime: process.uptime(),
+      uptimeSec: gatewayStatus.ok?.runtime?.uptimeSec || process.uptime(),
+      heartbeat: gatewayStatus.ok?.heartbeat || 'alive',
       workspace: WORKSPACE,
+      gateway: gatewayStatus,
       stats: {
         totalFiles,
         memoryFiles: memoryFileCount
@@ -80,7 +95,7 @@ export async function GET() {
       recentActivity
     });
   } catch (error: any) {
-    console.error('Error reading workspace:', error);
+    console.error('[API /status] Error:', error);
     return NextResponse.json({ 
       error: 'Failed to read workspace',
       name: 'Sun',

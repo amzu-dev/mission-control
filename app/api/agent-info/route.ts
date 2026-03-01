@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
+import { getOpenClawClient } from '@/app/lib/openclaw-client';
 
 export async function GET(request: Request) {
   try {
@@ -13,12 +10,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Agent ID required' }, { status: 400 });
     }
     
-    // Get all agents info
-    const { stdout } = await execAsync('openclaw agents list --json');
-    const agents = JSON.parse(stdout);
+    const client = await getOpenClawClient();
+    const sessions = await client.listSessions();
     
-    // Find the specific agent
-    const agent = agents.find((a: any) => a.id === agentId);
+    // Find the specific agent by session key
+    const agent = sessions.find((s: any) => s.key === agentId);
     
     if (!agent) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
@@ -26,7 +22,7 @@ export async function GET(request: Request) {
     
     return NextResponse.json({ agent });
   } catch (error: any) {
-    console.error('Error fetching agent info:', error);
+    console.error('[API /agent-info] Error fetching agent info:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
