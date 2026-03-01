@@ -5,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import SetupScreen from './components/SetupScreen';
 import AgentHierarchy from './components/AgentHierarchy';
+import { useRealtimeEvents } from './hooks/useRealtimeEvents';
 
 interface DashboardData {
   name: string;
@@ -67,6 +68,9 @@ export default function Dashboard() {
   const [version, setVersion] = useState<VersionInfo | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [initialLoad, setInitialLoad] = useState(true);
+  
+  // Real-time events hook
+  const { connected, lastEvent } = useRealtimeEvents();
 
   useEffect(() => {
     fetchData();
@@ -84,6 +88,22 @@ export default function Dashboard() {
       clearInterval(timer);
     };
   }, []);
+  
+  // Re-fetch when events arrive
+  useEffect(() => {
+    if (lastEvent) {
+      console.log('[Dashboard] Received event:', lastEvent.type);
+      if (
+        lastEvent.type === 'agent.status' || 
+        lastEvent.type === 'session.updated' ||
+        lastEvent.type === 'presence'
+      ) {
+        console.log('[Dashboard] Refreshing data due to event');
+        fetchData();
+        fetchHierarchy();
+      }
+    }
+  }, [lastEvent]);
 
   async function fetchData() {
     try {
@@ -147,8 +167,14 @@ export default function Dashboard() {
       <div className="h-12 bg-[#1a1a1a] border-b border-[#333] flex items-center justify-between px-4 flex-shrink-0">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
+            {/* Live indicator */}
+            <div className={`w-2.5 h-2.5 rounded-full transition-colors ${
+              connected ? 'bg-green-500 animate-pulse' : 'bg-gray-500'
+            }`} />
             <span className="font-bold text-base uppercase tracking-wider">MISSION CONTROL</span>
+            {connected && (
+              <span className="text-[10px] text-green-400 font-bold">LIVE</span>
+            )}
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="text-gray-500">STATUS:</span>
@@ -257,6 +283,12 @@ export default function Dashboard() {
                 <div className="flex justify-between">
                   <span className="text-gray-500">MEMORY LOGS</span>
                   <span>{data.stats.memoryFiles}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">REALTIME</span>
+                  <span className={connected ? 'text-green-400' : 'text-gray-500'}>
+                    {connected ? '● LIVE' : '○ OFFLINE'}
+                  </span>
                 </div>
               </div>
             </div>

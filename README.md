@@ -456,3 +456,100 @@ Built for the **OpenClaw** community by developers who love beautiful, functiona
 
 Inspired by Bloomberg Terminal's iconic interface.
 
+
+---
+
+## 🔴 Real-Time Updates (NEW!)
+
+Mission Control now supports **live updates** via Server-Sent Events (SSE). Your dashboard automatically refreshes when agents change status, sessions update, or presence events occur.
+
+### How It Works
+
+1. **Automatic Connection**
+   - Dashboard connects to `/api/events` on load
+   - Green "LIVE" indicator shows connection status
+   - Auto-reconnects if connection drops (3s delay)
+
+2. **Event Types Monitored**
+   - `agent.status` - Agent status changes
+   - `session.updated` - Session changes
+   - `presence` - Agent online/offline
+   - `heartbeat` - Gateway heartbeat
+   - `chat` - Chat messages
+
+3. **Visual Indicators**
+   - **Green pulsing dot** next to "MISSION CONTROL" = Connected
+   - **"LIVE" label** appears when connected
+   - **System Info panel** shows realtime status
+   - **Gray dot** = Disconnected/Connecting
+
+### Real-Time Features
+
+✅ **Auto-refresh on events** - No manual refresh needed  
+✅ **Connection resilience** - Auto-reconnects on network issues  
+✅ **Keep-alive pings** - Maintains connection (30s interval)  
+✅ **Event buffering** - Stores last 100 events  
+✅ **Zero polling** - Efficient push-based updates  
+
+### Testing Real-Time Updates
+
+1. **Start the dev server:**
+   ```bash
+   npm run dev
+   ```
+
+2. **Open dashboard in browser:**
+   ```
+   http://localhost:3002
+   ```
+
+3. **Verify "LIVE" indicator** (green pulsing dot in top bar)
+
+4. **Trigger an agent action** in a separate terminal:
+   ```bash
+   # Start a chat session
+   openclaw chat -a main "hello"
+   
+   # Or create a new agent
+   openclaw agents create test-agent
+   ```
+
+5. **Watch dashboard auto-refresh** - No page reload needed!
+
+### Architecture
+
+```
+Browser (EventSource)
+    ↓
+Next.js /api/events (SSE endpoint)
+    ↓
+openclaw-ws-client (WebSocket)
+    ↓
+OpenClaw Gateway (ws://127.0.0.1:18789)
+```
+
+### Components
+
+- **`app/api/events/route.ts`** - SSE endpoint that streams events
+- **`app/hooks/useRealtimeEvents.ts`** - React hook for consuming events
+- **`app/components/LiveIndicator.tsx`** - Connection status component
+- **`app/page.tsx`** - Dashboard with real-time auto-refresh
+
+### Troubleshooting
+
+**"Connecting..." stays gray**
+- Check OpenClaw Gateway is running: `openclaw gateway status`
+- Verify WebSocket connection: `curl http://127.0.0.1:18789`
+- Check browser console for errors
+
+**Events not triggering refresh**
+- Check browser console for `[Realtime]` logs
+- Ensure event types match (`agent.status`, `session.updated`, etc.)
+- Test with: `openclaw chat -a main "test"`
+
+**Connection drops frequently**
+- Check network stability
+- Verify keep-alive pings in browser Network tab
+- Check SSE endpoint logs in terminal
+
+---
