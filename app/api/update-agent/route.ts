@@ -46,11 +46,35 @@ export async function POST(request: Request) {
     // Update agent config with model if provided
     if (model) {
       try {
-        // This updates the agent's model in the OpenClaw config
-        const configCmd = `openclaw config set agents.list.${agentId}.model '${model}'`;
-        await execAsync(configCmd);
+        // Read current config
+        const configPath = join(process.env.HOME || '', '.openclaw/openclaw.json');
+        const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+        
+        // Find agent in config
+        if (!config.agents) config.agents = {};
+        if (!config.agents.list) config.agents.list = [];
+        
+        let agentConfig = config.agents.list.find((a: any) => a.id === agentId);
+        if (!agentConfig) {
+          // Create agent config if doesn't exist
+          agentConfig = { id: agentId };
+          config.agents.list.push(agentConfig);
+        }
+        
+        // Update model (use object format with primary key)
+        agentConfig.model = {
+          primary: model
+        };
+        
+        // Write back to config file
+        writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+        
+        console.log(`[API /update-agent] Updated ${agentId} model to ${model}`);
       } catch (configError) {
-        console.warn('Could not update model in config:', configError);
+        console.error('Could not update model in config:', configError);
+        return NextResponse.json({ 
+          error: `Failed to save model: ${configError instanceof Error ? configError.message : 'Unknown error'}` 
+        }, { status: 500 });
       }
     }
     
