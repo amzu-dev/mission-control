@@ -213,13 +213,6 @@ export default function Dashboard() {
           )}
           
           <button
-            onClick={() => router.push('/trading')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 border border-blue-500 text-white font-bold text-xs rounded transition-colors"
-            title="Trading Dashboard"
-          >
-            📊 TRADING
-          </button>
-          <button
             onClick={() => router.push('/subagents')}
             className="px-4 py-2 bg-[#1a1a1a] hover:bg-[#222] border border-[#333] text-gray-400 font-bold text-xs rounded transition-colors"
             title="Agent Hierarchy"
