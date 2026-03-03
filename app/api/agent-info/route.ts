@@ -11,14 +11,25 @@ export async function GET(request: Request) {
     }
     
     const client = await getOpenClawClient();
-    const sessions = await client.listSessions();
     
-    // Find the specific agent by session key
-    const agent = sessions.find((s: any) => s.key === agentId);
+    // List all agents and find the one we want
+    const agents = await client.listAgents();
+    const agentData = agents.find((a: any) => a.id === agentId);
     
-    if (!agent) {
+    if (!agentData) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
+    
+    // Transform to match expected format
+    const agent = {
+      id: agentId,
+      identityName: agentData.identity?.name || agentData.name || agentId,
+      identityEmoji: agentData.identity?.emoji || '🤖',
+      model: agentData.model || 'anthropic/claude-sonnet-4-5',
+      workspace: agentData.workspace || `~/.openclaw/agents/${agentId}/workspace`,
+      bindings: agentData.bindings || 0,
+      isDefault: agentId === 'main'
+    };
     
     return NextResponse.json({ agent });
   } catch (error: any) {

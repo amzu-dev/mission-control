@@ -11,7 +11,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Agent ID required' }, { status: 400 });
     }
     
-    // Determine workspace path
+    // Determine agent directory path (where SOUL.md, IDENTITY.md, etc. live)
+    let agentDirPath: string;
+    if (agentId === 'main') {
+      agentDirPath = '/Users/venkat/.openclaw/agents/main/agent';
+    } else {
+      agentDirPath = `/Users/venkat/.openclaw/agents/${agentId}/agent`;
+    }
+    
+    // Also check workspace for workspace-specific files
     let workspacePath: string;
     if (agentId === 'main') {
       workspacePath = '/Users/venkat/.openclaw/workspace';
@@ -19,8 +27,8 @@ export async function GET(request: Request) {
       workspacePath = `/Users/venkat/.openclaw/agents/${agentId}/workspace`;
     }
     
-    if (!existsSync(workspacePath)) {
-      return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
+    if (!existsSync(agentDirPath)) {
+      return NextResponse.json({ error: 'Agent directory not found' }, { status: 404 });
     }
     
     // Core agent configuration files to show
@@ -34,23 +42,49 @@ export async function GET(request: Request) {
       'BOOTSTRAP.md'
     ];
     
-    // Get only core agent .md files (not subdirectories or other files)
-    const files = readdirSync(workspacePath)
-      .filter(f => {
-        const fullPath = join(workspacePath, f);
-        const isFile = statSync(fullPath).isFile();
-        return isFile && f.endsWith('.md') && allowedFiles.includes(f);
-      })
-      .map(filename => {
-        const content = readFileSync(join(workspacePath, filename), 'utf-8');
-        return {
-          filename,
-          content,
-          path: join(workspacePath, filename)
-        };
-      });
+    const files = [];
     
-    return NextResponse.json({ files, workspacePath });
+    // Get files from agent directory
+    if (existsSync(agentDirPath)) {
+      const agentFiles = readdirSync(agentDirPath)
+        .filter(f => {
+          const fullPath = join(agentDirPath, f);
+          const isFile = statSync(fullPath).isFile();
+          return isFile && f.endsWith('.md') && allowedFiles.includes(f);
+        })
+        .map(filename => {
+          const content = readFileSync(join(agentDirPath, filename), 'utf-8');
+          return {
+            filename,
+            content,
+            path: join(agentDirPath, filename)
+          };
+        });
+      files.push(...agentFiles);
+    }
+    
+    // Get files from workspace directory (if different)
+    if (existsSync(workspacePath) && workspacePath !== agentDirPath) {
+      const workspaceFiles = readdirSync(workspacePath)
+        .filter(f => {
+          const fullPath = join(workspacePath, f);
+          const isFile = statSync(fullPath).isFile();
+          // Don't add duplicates
+          const alreadyExists = files.some(file => file.filename === f);
+          return isFile && f.endsWith('.md') && allowedFiles.includes(f) && !alreadyExists;
+        })
+        .map(filename => {
+          const content = readFileSync(join(workspacePath, filename), 'utf-8');
+          return {
+            filename,
+            content,
+            path: join(workspacePath, filename)
+          };
+        });
+      files.push(...workspaceFiles);
+    }
+    
+    return NextResponse.json({ files, agentDirPath, workspacePath });
   } catch (error: any) {
     console.error('Error fetching agent files:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

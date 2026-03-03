@@ -7,7 +7,7 @@ export async function GET() {
     
     // Get all available agents with full details
     const agentsResponse = await client.request('agents.list', {});
-    const agentsData = agentsResponse.payload || [];
+    const agentsData = agentsResponse.payload?.agents || [];
     
     // Get all sessions to match with agents
     const sessionsResponse = await client.request('sessions.list', {});
