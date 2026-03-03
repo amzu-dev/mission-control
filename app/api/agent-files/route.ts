@@ -63,32 +63,62 @@ export async function GET(request: Request) {
       'BOOTSTRAP.md'
     ];
     
-    // Get existing files from the agent directory
-    const existingFiles = new Set<string>();
-    if (existsSync(agentDirPath)) {
-      readdirSync(agentDirPath)
-        .filter(f => {
-          const fullPath = join(agentDirPath, f);
-          try {
-            const isFile = statSync(fullPath).isFile();
-            return isFile && f.endsWith('.md') && allowedFiles.includes(f);
-          } catch {
-            return false;
-          }
-        })
-        .forEach(f => existingFiles.add(f));
-    }
+    // Check both workspace and agent directories for files
+    const dirsToCheck = [
+      agentDirPath,
+      // Also check the agent directory if we're looking at workspace
+      agentDirPath.includes('/workspace') 
+        ? agentDirPath.replace('/workspace', '/agent')
+        : null,
+      // Or check workspace if we're looking at agent directory
+      agentDirPath.includes('/agent') && !agentDirPath.includes('/agent/')
+        ? agentDirPath.replace('/agent', '/workspace')
+        : null,
+    ].filter(Boolean) as string[];
+    
+    // Build a map of files from all directories (workspace takes precedence)
+    const fileMap = new Map<string, { path: string; content: string; exists: boolean }>();
+    
+    // Check each directory in reverse order (so first directory wins in case of duplicates)
+    dirsToCheck.reverse().forEach(dir => {
+      if (existsSync(dir)) {
+        readdirSync(dir)
+          .filter(f => {
+            const fullPath = join(dir, f);
+            try {
+              const isFile = statSync(fullPath).isFile();
+              return isFile && f.endsWith('.md') && allowedFiles.includes(f);
+            } catch {
+              return false;
+            }
+          })
+          .forEach(filename => {
+            const filePath = join(dir, filename);
+            const content = readFileSync(filePath, 'utf-8');
+            fileMap.set(filename, { path: filePath, content, exists: true });
+          });
+      }
+    });
     
     // Build file list: show all allowed files, mark which ones exist
     const files = allowedFiles.map(filename => {
-      const filePath = join(agentDirPath, filename);
-      const exists = existingFiles.has(filename);
+      const fileData = fileMap.get(filename);
       
+      if (fileData) {
+        return {
+          filename,
+          content: fileData.content,
+          path: fileData.path,
+          exists: true
+        };
+      }
+      
+      // File doesn't exist in any directory, use primary path
       return {
         filename,
-        content: exists ? readFileSync(filePath, 'utf-8') : '',
-        path: filePath,
-        exists
+        content: '',
+        path: join(agentDirPath, filename),
+        exists: false
       };
     });
     
