@@ -237,7 +237,11 @@ export default function ManageAgents() {
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Model:</span>
-                      <span className="text-gray-300">{agent.model.split('/')[1] || agent.model}</span>
+                      <span className="text-gray-300" title={agent.model}>
+                        {agent.model.includes('/') 
+                          ? agent.model.split('/').slice(1).join('/') 
+                          : agent.model}
+                      </span>
                     </div>
                     {agent.tokens > 0 && (
                       <div className="flex justify-between">

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getOpenClawClient } from '@/app/lib/openclaw-client';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 export async function GET() {
   try {
@@ -13,12 +15,36 @@ export async function GET() {
     const sessionsResponse = await client.request('sessions.list', {});
     const sessionsData = sessionsResponse.payload?.sessions || [];
     
+    // Read agent models from config file (more accurate than WebSocket)
+    const agentModels = new Map<string, string>();
+    try {
+      const configPath = join(process.env.HOME || '', '.openclaw/openclaw.json');
+      const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+      
+      config.agents?.list?.forEach((agentConfig: any) => {
+        if (agentConfig.model) {
+          const modelId = typeof agentConfig.model === 'string' 
+            ? agentConfig.model 
+            : agentConfig.model.primary;
+          if (modelId) {
+            agentModels.set(agentConfig.id, modelId);
+          }
+        }
+      });
+    } catch (configError) {
+      console.warn('[API /all-agents] Could not read models from config:', configError);
+    }
+    
     // Map agents with their session data
     const agents = agentsData.map((agent: any) => {
       // Find matching session for this agent
       const session = sessionsData.find((s: any) => 
         s.key.includes(agent.id)
       );
+      
+      // Use model from config if available, fallback to session/agent model
+      const configuredModel = agentModels.get(agent.id);
+      const displayModel = configuredModel || session?.model || agent.model || 'N/A';
       
       return {
         id: agent.id,
@@ -27,7 +53,7 @@ export async function GET() {
         workspace: agent.workspace,
         configured: true,
         active: !!session,
-        model: session?.model || agent.model || 'N/A',
+        model: displayModel,
         tokens: session?.totalTokens || 0,
         contextTokens: session?.contextTokens || 0,
         lastActive: session?.updatedAt ? new Date(session.updatedAt).toISOString() : null,
