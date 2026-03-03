@@ -37,6 +37,7 @@ export default function EditAgent() {
   const [agentEmoji, setAgentEmoji] = useState('');
   const [agentModel, setAgentModel] = useState('');
   const [updatingAgent, setUpdatingAgent] = useState(false);
+  const [availableModels, setAvailableModels] = useState<Array<{ id: string; name: string }>>([]);
   const [showDialog, setShowDialog] = useState(false);
   const [dialogConfig, setDialogConfig] = useState({
     title: '',
@@ -51,7 +52,20 @@ export default function EditAgent() {
       loadAgentInfo(agentId);
       loadAgentFiles(agentId);
     }
+    loadAvailableModels();
   }, [agentId]);
+
+  async function loadAvailableModels() {
+    try {
+      const res = await fetch('/api/models');
+      const data = await res.json();
+      if (data.models) {
+        setAvailableModels(data.models);
+      }
+    } catch (error) {
+      console.error('Failed to load models:', error);
+    }
+  }
 
   async function loadAgentInfo(id: string) {
     try {
@@ -348,13 +362,15 @@ export default function EditAgent() {
                       onChange={(e) => setAgentModel(e.target.value)}
                       className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm text-gray-200"
                     >
-                      <option value="anthropic/claude-sonnet-4-5">Claude Sonnet 4.5</option>
-                      <option value="anthropic/claude-opus-4-5">Claude Opus 4.5</option>
-                      <option value="anthropic/claude-opus-4-6">Claude Opus 4.6</option>
-                      <option value="anthropic/claude-sonnet-3-5">Claude Sonnet 3.5</option>
-                      <option value="openai/gpt-4">GPT-4</option>
-                      <option value="openai/gpt-4-turbo">GPT-4 Turbo</option>
-                      <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                      {availableModels.length === 0 ? (
+                        <option value="">Loading models...</option>
+                      ) : (
+                        availableModels.map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
                   <div className="col-span-3">
