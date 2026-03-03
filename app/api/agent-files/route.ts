@@ -12,22 +12,32 @@ export async function GET(request: Request) {
     }
     
     // Determine agent directory path (where SOUL.md, IDENTITY.md, etc. live)
-    let agentDirPath: string;
-    if (agentId === 'main') {
-      agentDirPath = '/Users/venkat/.openclaw/agents/main/agent';
-    } else {
-      agentDirPath = `/Users/venkat/.openclaw/agents/${agentId}/agent`;
+    // Try multiple locations in order of preference
+    const possiblePaths = [
+      // Dev team agents location
+      `/Users/venkat/.openclaw/workspace/dev-team/${agentId}`,
+      // Individual workspace location
+      `/Users/venkat/.openclaw/workspace/${agentId}`,
+      // Legacy agents directory
+      `/Users/venkat/.openclaw/agents/${agentId}/workspace`,
+      `/Users/venkat/.openclaw/agents/${agentId}/agent`,
+      // Main agent special case
+      agentId === 'main' ? '/Users/venkat/.openclaw/workspace' : null,
+      agentId === 'main' ? '/Users/venkat/.openclaw/agents/main/agent' : null,
+    ].filter(Boolean) as string[];
+    
+    let agentDirPath: string | null = null;
+    for (const path of possiblePaths) {
+      if (existsSync(path)) {
+        agentDirPath = path;
+        break;
+      }
     }
     
-    // Also check workspace for workspace-specific files
-    let workspacePath: string;
-    if (agentId === 'main') {
-      workspacePath = '/Users/venkat/.openclaw/workspace';
-    } else {
-      workspacePath = `/Users/venkat/.openclaw/agents/${agentId}/workspace`;
-    }
+    // Workspace path is the same as agent dir for now
+    const workspacePath = agentDirPath;
     
-    if (!existsSync(agentDirPath)) {
+    if (!agentDirPath || !existsSync(agentDirPath)) {
       return NextResponse.json({ error: 'Agent directory not found' }, { status: 404 });
     }
     
@@ -42,47 +52,21 @@ export async function GET(request: Request) {
       'BOOTSTRAP.md'
     ];
     
-    const files = [];
-    
-    // Get files from agent directory
-    if (existsSync(agentDirPath)) {
-      const agentFiles = readdirSync(agentDirPath)
-        .filter(f => {
-          const fullPath = join(agentDirPath, f);
-          const isFile = statSync(fullPath).isFile();
-          return isFile && f.endsWith('.md') && allowedFiles.includes(f);
-        })
-        .map(filename => {
-          const content = readFileSync(join(agentDirPath, filename), 'utf-8');
-          return {
-            filename,
-            content,
-            path: join(agentDirPath, filename)
-          };
-        });
-      files.push(...agentFiles);
-    }
-    
-    // Get files from workspace directory (if different)
-    if (existsSync(workspacePath) && workspacePath !== agentDirPath) {
-      const workspaceFiles = readdirSync(workspacePath)
-        .filter(f => {
-          const fullPath = join(workspacePath, f);
-          const isFile = statSync(fullPath).isFile();
-          // Don't add duplicates
-          const alreadyExists = files.some(file => file.filename === f);
-          return isFile && f.endsWith('.md') && allowedFiles.includes(f) && !alreadyExists;
-        })
-        .map(filename => {
-          const content = readFileSync(join(workspacePath, filename), 'utf-8');
-          return {
-            filename,
-            content,
-            path: join(workspacePath, filename)
-          };
-        });
-      files.push(...workspaceFiles);
-    }
+    // Get all markdown files from the agent directory
+    const files = readdirSync(agentDirPath)
+      .filter(f => {
+        const fullPath = join(agentDirPath, f);
+        const isFile = statSync(fullPath).isFile();
+        return isFile && f.endsWith('.md') && allowedFiles.includes(f);
+      })
+      .map(filename => {
+        const content = readFileSync(join(agentDirPath, filename), 'utf-8');
+        return {
+          filename,
+          content,
+          path: join(agentDirPath, filename)
+        };
+      });
     
     return NextResponse.json({ files, agentDirPath, workspacePath });
   } catch (error: any) {
