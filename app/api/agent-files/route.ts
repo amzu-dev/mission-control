@@ -63,41 +63,57 @@ export async function GET(request: Request) {
       'BOOTSTRAP.md'
     ];
     
-    // Check both workspace and agent directories for files
-    const dirsToCheck = [
-      agentDirPath,
-      // Also check the agent directory if we're looking at workspace
-      agentDirPath.includes('/workspace') 
-        ? agentDirPath.replace('/workspace', '/agent')
-        : null,
-      // Or check workspace if we're looking at agent directory
-      agentDirPath.includes('/agent') && !agentDirPath.includes('/agent/')
-        ? agentDirPath.replace('/agent', '/workspace')
-        : null,
-    ].filter(Boolean) as string[];
+    // Always check both standard locations for all agents
+    // Priority order (first match wins for duplicate files):
+    // 1. Dev team workspace (highest priority for dev team agents)
+    // 2. Standalone workspace
+    // 3. Agent workspace directory
+    // 4. Agent auth/config directory
     
-    // Build a map of files from all directories (workspace takes precedence)
+    const dirsToCheck: string[] = [];
+    
+    if (agentId === 'main') {
+      // Main agent: check root workspace first, then agents/main
+      dirsToCheck.push('/Users/venkat/.openclaw/workspace');
+      dirsToCheck.push('/Users/venkat/.openclaw/agents/main/agent');
+    } else {
+      // All other agents: check all possible locations in priority order
+      dirsToCheck.push(`/Users/venkat/.openclaw/workspace/dev-team/${agentId}`);
+      dirsToCheck.push(`/Users/venkat/.openclaw/workspace/${agentId}`);
+      dirsToCheck.push(`/Users/venkat/.openclaw/agents/${agentId}/workspace`);
+      dirsToCheck.push(`/Users/venkat/.openclaw/agents/${agentId}/agent`);
+    }
+    
+    // Filter to only existing directories
+    const existingDirs = dirsToCheck.filter(dir => existsSync(dir));
+    
+    console.log(`[API /agent-files] Agent: ${agentId}`);
+    console.log(`[API /agent-files] Checking directories:`, existingDirs.length > 0 ? existingDirs : 'none exist yet');
+    console.log(`[API /agent-files] Primary path for new files:`, agentDirPath);
+    
+    // Build a map of files from all directories (first directory in list takes precedence)
     const fileMap = new Map<string, { path: string; content: string; exists: boolean }>();
     
-    // Check each directory in reverse order (so first directory wins in case of duplicates)
-    dirsToCheck.reverse().forEach(dir => {
-      if (existsSync(dir)) {
-        readdirSync(dir)
-          .filter(f => {
-            const fullPath = join(dir, f);
-            try {
-              const isFile = statSync(fullPath).isFile();
-              return isFile && f.endsWith('.md') && allowedFiles.includes(f);
-            } catch {
-              return false;
-            }
-          })
-          .forEach(filename => {
+    // Check each directory (first one wins in case of duplicates)
+    existingDirs.forEach(dir => {
+      readdirSync(dir)
+        .filter(f => {
+          const fullPath = join(dir, f);
+          try {
+            const isFile = statSync(fullPath).isFile();
+            return isFile && f.endsWith('.md') && allowedFiles.includes(f);
+          } catch {
+            return false;
+          }
+        })
+        .forEach(filename => {
+          // Only add if not already in map (first directory takes precedence)
+          if (!fileMap.has(filename)) {
             const filePath = join(dir, filename);
             const content = readFileSync(filePath, 'utf-8');
             fileMap.set(filename, { path: filePath, content, exists: true });
-          });
-      }
+          }
+        });
     });
     
     // Build file list: show all allowed files, mark which ones exist
