@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readFileSync, readdirSync, existsSync, statSync } from 'fs';
+import { readFileSync, readdirSync, existsSync, statSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
 export async function GET(request: Request) {
@@ -37,11 +37,23 @@ export async function GET(request: Request) {
     // Workspace path is the same as agent dir for now
     const workspacePath = agentDirPath;
     
-    if (!agentDirPath || !existsSync(agentDirPath)) {
-      return NextResponse.json({ error: 'Agent directory not found' }, { status: 404 });
+    // If directory doesn't exist, create it
+    if (!agentDirPath) {
+      // Default to creating workspace in agents directory
+      agentDirPath = `/Users/venkat/.openclaw/agents/${agentId}/workspace`;
     }
     
-    // Core agent configuration files to show
+    if (!existsSync(agentDirPath)) {
+      try {
+        mkdirSync(agentDirPath, { recursive: true });
+        console.log(`[API /agent-files] Created workspace directory: ${agentDirPath}`);
+      } catch (error) {
+        console.error(`[API /agent-files] Failed to create directory:`, error);
+        return NextResponse.json({ error: 'Failed to create agent workspace' }, { status: 500 });
+      }
+    }
+    
+    // Core agent configuration files to show (always show these, even if they don't exist)
     const allowedFiles = [
       'IDENTITY.md',
       'SOUL.md',
@@ -52,21 +64,34 @@ export async function GET(request: Request) {
       'BOOTSTRAP.md'
     ];
     
-    // Get all markdown files from the agent directory
-    const files = readdirSync(agentDirPath)
-      .filter(f => {
-        const fullPath = join(agentDirPath, f);
-        const isFile = statSync(fullPath).isFile();
-        return isFile && f.endsWith('.md') && allowedFiles.includes(f);
-      })
-      .map(filename => {
-        const content = readFileSync(join(agentDirPath, filename), 'utf-8');
-        return {
-          filename,
-          content,
-          path: join(agentDirPath, filename)
-        };
-      });
+    // Get existing files from the agent directory
+    const existingFiles = new Set<string>();
+    if (existsSync(agentDirPath)) {
+      readdirSync(agentDirPath)
+        .filter(f => {
+          const fullPath = join(agentDirPath, f);
+          try {
+            const isFile = statSync(fullPath).isFile();
+            return isFile && f.endsWith('.md') && allowedFiles.includes(f);
+          } catch {
+            return false;
+          }
+        })
+        .forEach(f => existingFiles.add(f));
+    }
+    
+    // Build file list: show all allowed files, mark which ones exist
+    const files = allowedFiles.map(filename => {
+      const filePath = join(agentDirPath, filename);
+      const exists = existingFiles.has(filename);
+      
+      return {
+        filename,
+        content: exists ? readFileSync(filePath, 'utf-8') : '',
+        path: filePath,
+        exists
+      };
+    });
     
     return NextResponse.json({ files, agentDirPath, workspacePath });
   } catch (error: any) {

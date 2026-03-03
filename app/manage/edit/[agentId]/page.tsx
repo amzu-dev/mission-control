@@ -9,6 +9,7 @@ interface AgentFile {
   filename: string;
   content: string;
   path: string;
+  exists?: boolean;
 }
 
 interface AgentInfo {
@@ -424,13 +425,18 @@ export default function EditAgent() {
                       <button
                         key={file.filename}
                         onClick={() => handleFileSelect(file)}
-                        className={`w-full text-left px-3 py-2 rounded transition-colors text-sm ${
+                        className={`w-full text-left px-3 py-2 rounded transition-colors text-sm flex items-center justify-between ${
                           selectedFile?.filename === file.filename
                             ? 'bg-orange-500 text-black font-bold'
                             : 'bg-[#1a1a1a] hover:bg-[#222] text-gray-300'
                         }`}
                       >
-                        {file.filename}
+                        <span>{file.filename}</span>
+                        {!file.exists && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-blue-500 text-white rounded">
+                            NEW
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -444,9 +450,15 @@ export default function EditAgent() {
                 </h3>
                 {selectedFile ? (
                   <div className="space-y-3">
+                    {!selectedFile.exists && (
+                      <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 text-sm text-blue-400">
+                        <strong>📝 New File:</strong> This file doesn't exist yet. Add content below and click CREATE FILE to save it.
+                      </div>
+                    )}
                     <textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
+                      placeholder={!selectedFile.exists ? `Add content for ${selectedFile.filename}...` : ''}
                       className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono h-[500px] resize-none text-gray-200"
                       spellCheck={false}
                       style={{ color: '#e5e5e5' }}
@@ -456,7 +468,11 @@ export default function EditAgent() {
                       disabled={saving}
                       className="w-full bg-orange-500 hover:bg-orange-600 text-black font-bold py-2 rounded transition-colors disabled:opacity-50"
                     >
-                      {saving ? 'SAVING...' : 'SAVE FILE'}
+                      {saving 
+                        ? 'SAVING...' 
+                        : selectedFile?.exists 
+                        ? 'SAVE FILE' 
+                        : 'CREATE FILE'}
                     </button>
                   </div>
                 ) : (
