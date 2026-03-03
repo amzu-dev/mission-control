@@ -43,6 +43,9 @@ export async function POST(request: Request) {
       }
     }
     
+    // Track if model was changed (requires gateway restart)
+    let modelChanged = false;
+    
     // Update agent config with model if provided
     if (model) {
       try {
@@ -55,6 +58,8 @@ export async function POST(request: Request) {
         if (!config.agents.list) config.agents.list = [];
         
         let agentConfig = config.agents.list.find((a: any) => a.id === agentId);
+        const oldModel = agentConfig?.model?.primary || null;
+        
         if (!agentConfig) {
           // Create agent config if doesn't exist
           agentConfig = { id: agentId };
@@ -66,10 +71,13 @@ export async function POST(request: Request) {
           primary: model
         };
         
+        // Check if model actually changed
+        modelChanged = oldModel !== model;
+        
         // Write back to config file
         writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
         
-        console.log(`[API /update-agent] Updated ${agentId} model to ${model}`);
+        console.log(`[API /update-agent] Updated ${agentId} model from ${oldModel || 'default'} to ${model}`);
       } catch (configError) {
         console.error('Could not update model in config:', configError);
         return NextResponse.json({ 
@@ -80,7 +88,9 @@ export async function POST(request: Request) {
     
     return NextResponse.json({ 
       success: true, 
-      message: 'Agent updated successfully'
+      message: 'Agent updated successfully',
+      modelChanged,
+      requiresRestart: modelChanged
     });
   } catch (error: any) {
     console.error('Error updating agent:', error);

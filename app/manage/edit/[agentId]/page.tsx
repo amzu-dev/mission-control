@@ -38,6 +38,7 @@ export default function EditAgent() {
   const [agentEmoji, setAgentEmoji] = useState('');
   const [agentModel, setAgentModel] = useState('');
   const [updatingAgent, setUpdatingAgent] = useState(false);
+  const [restartingGateway, setRestartingGateway] = useState(false);
   const [availableModels, setAvailableModels] = useState<Array<{ id: string; name: string }>>([]);
   const [showDialog, setShowDialog] = useState(false);
   const [dialogConfig, setDialogConfig] = useState({
@@ -167,6 +168,48 @@ export default function EditAgent() {
     setShowDialog(true);
   }
 
+  async function restartGateway() {
+    setRestartingGateway(true);
+    try {
+      const res = await fetch('/api/gateway-restart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: `Model change for agent ${agentId}` })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        setDialogConfig({
+          title: 'Gateway Restarted',
+          message: 'Gateway successfully restarted. Model changes are now active.',
+          type: 'success',
+          onConfirm: undefined
+        });
+        setShowDialog(true);
+        await loadAgentInfo(agentId);
+      } else {
+        setDialogConfig({
+          title: 'Restart Warning',
+          message: data.warning || data.error || 'Gateway restart may still be in progress. Please refresh in a moment.',
+          type: 'warning',
+          onConfirm: undefined
+        });
+        setShowDialog(true);
+      }
+    } catch (error) {
+      setDialogConfig({
+        title: 'Error',
+        message: 'Failed to restart gateway. Please try manually with: openclaw gateway restart',
+        type: 'error',
+        onConfirm: undefined
+      });
+      setShowDialog(true);
+    } finally {
+      setRestartingGateway(false);
+    }
+  }
+
   async function handleUpdateAgent() {
     // Validate emoji
     if (!agentEmoji) {
@@ -194,15 +237,33 @@ export default function EditAgent() {
       });
       
       if (res.ok) {
-        setDialogConfig({
-          title: 'Success',
-          message: 'Agent updated successfully!',
-          type: 'success',
-          onConfirm: undefined
-        });
-        setShowDialog(true);
-        setEditingInfo(false);
-        await loadAgentInfo(agentId);
+        const data = await res.json();
+        
+        // Check if gateway restart is needed
+        if (data.requiresRestart && data.modelChanged) {
+          setUpdatingAgent(false);
+          setDialogConfig({
+            title: 'Model Changed',
+            message: 'Agent model updated. Gateway restart required to apply changes. Restart now?',
+            type: 'warning',
+            onConfirm: async () => {
+              setShowDialog(false);
+              await restartGateway();
+            }
+          });
+          setShowDialog(true);
+          setEditingInfo(false);
+        } else {
+          setDialogConfig({
+            title: 'Success',
+            message: 'Agent updated successfully!',
+            type: 'success',
+            onConfirm: undefined
+          });
+          setShowDialog(true);
+          setEditingInfo(false);
+          await loadAgentInfo(agentId);
+        }
       } else {
         const data = await res.json();
         setDialogConfig({
@@ -279,6 +340,24 @@ export default function EditAgent() {
 
   return (
     <div className="h-screen flex flex-col bg-black">
+      {/* Gateway Restarting Overlay */}
+      {restartingGateway && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+          <div className="bg-[#0a0a0a] border-2 border-orange-500 rounded-lg p-8 max-w-md text-center">
+            <div className="text-6xl mb-4 animate-pulse">🔄</div>
+            <h3 className="text-xl font-bold text-orange-400 mb-2">Restarting Gateway...</h3>
+            <p className="text-sm text-gray-400 mb-4">
+              Applying model changes. This may take up to 30 seconds.
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Top Bar */}
       <div className="h-12 bg-[#1a1a1a] border-b border-[#333] flex items-center justify-between px-4 flex-shrink-0">
         <div className="flex items-center gap-4">
