@@ -213,6 +213,13 @@ export default function Dashboard() {
           )}
           
           <button
+            onClick={() => router.push('/manage')}
+            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black font-bold text-xs rounded transition-colors"
+            title="Manage Agents"
+          >
+            🤖 AGENTS
+          </button>
+          <button
             onClick={() => router.push('/subagents')}
             className="px-4 py-2 bg-[#1a1a1a] hover:bg-[#222] border border-[#333] text-gray-400 font-bold text-xs rounded transition-colors"
             title="Agent Hierarchy"
@@ -225,12 +232,6 @@ export default function Dashboard() {
             title="Settings"
           >
             ⚙️ SETTINGS
-          </button>
-          <button
-            onClick={() => router.push('/manage')}
-            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black font-bold text-xs rounded transition-colors"
-          >
-            MANAGE AGENTS
           </button>
           <div className="flex items-center gap-2 text-xs">
             <span className="text-gray-500">GMT</span>
