@@ -14,6 +14,8 @@ export async function GET(request: Request) {
     // Determine agent directory path (where SOUL.md, IDENTITY.md, etc. live)
     // Try multiple locations in order of preference
     const possiblePaths = [
+      // Main agent special case - check root workspace first
+      agentId === 'main' ? '/Users/venkat/.openclaw/workspace' : null,
       // Dev team agents location
       `/Users/venkat/.openclaw/workspace/dev-team/${agentId}`,
       // Individual workspace location
@@ -21,9 +23,6 @@ export async function GET(request: Request) {
       // Legacy agents directory
       `/Users/venkat/.openclaw/agents/${agentId}/workspace`,
       `/Users/venkat/.openclaw/agents/${agentId}/agent`,
-      // Main agent special case
-      agentId === 'main' ? '/Users/venkat/.openclaw/workspace' : null,
-      agentId === 'main' ? '/Users/venkat/.openclaw/agents/main/agent' : null,
     ].filter(Boolean) as string[];
     
     let agentDirPath: string | null = null;
